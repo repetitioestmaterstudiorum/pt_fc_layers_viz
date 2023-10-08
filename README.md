@@ -32,5 +32,4 @@ Neural net with layers:
 - (1): Sigmoid()
 - (2): Linear(in_features=2, out_features=1, bias=True)
 
-Visualization:
-![Example Visualization](https://github.com/repetitioestmaterstudiorum/pt_fc_layers_viz/raw/main/assets/visualization-xor-model.png)
+![Example Visualization](https://github.com/repetitioestmaterstudiorum/pt_fc_layers_viz/blob/main/assets/visualization-xor-model.png?raw=true)
