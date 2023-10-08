@@ -77,7 +77,7 @@ def draw_pt_fc_layers(pt_fc_model, param_val=True):
             if i > 0 and i < len(layers):
                 for i_is in range(input_size):
                     prev_layer_id = f'{layers[i - 1][0]}.node.{i_is}'
-                    weight_str = f"Weight {i_os} {i_is}: {layer_params['weights'][i_os][i_is]:.4f}" if param_val else f"Weight {i_os} {i_is}"
+                    weight_str = f"Weight {i} {i_os} {i_is}: {layer_params['weights'][i_os][i_is]:.4f}" if param_val else f"Weight {i} {i_os} {i_is}"
                     dot.edge(prev_layer_id, node_id, label=weight_str)
             
             # If this is the last layer, add the output nodes
@@ -92,7 +92,7 @@ def draw_pt_fc_layers(pt_fc_model, param_val=True):
                 node_id = f'{layer_id}.node.{i_os}'
                 for i_is in range(input_size):
                     input_node_id = f'input.{i_is}'
-                    input_weight_str = f"Weight {i_os} {i_is}: {layer_params['weights'][i_os][i_is]:.4f}" if param_val else f"Weight {i_os} {i_is}"
+                    input_weight_str = f"Weight {i} {i_os} {i_is}: {layer_params['weights'][i_os][i_is]:.4f}" if param_val else f"Weight {i} {i_os} {i_is}"
                     dot.edge(input_node_id, node_id, label=input_weight_str)
 
     svg = dot.pipe(format='svg')

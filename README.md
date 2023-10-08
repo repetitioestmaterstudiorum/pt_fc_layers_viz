@@ -36,7 +36,7 @@ Neural net with layers:
 - (2): Linear(in_features=2, out_features=1, bias=True)
 
 With parameter values:
-![Example Visualization](https://github.com/repetitioestmaterstudiorum/pt_fc_layers_viz/blob/main/assets/visualization-xor-model-param-val.png?raw=true)
+![Example Visualization](https://github.com/repetitioestmaterstudiorum/pt_fc_layers_viz/blob/main/assets/example-with-paramts.png?raw=true)
 
 Without parameter values:
-![Example Visualization](https://github.com/repetitioestmaterstudiorum/pt_fc_layers_viz/blob/main/assets/visualization-xor-model.png?raw=true)
+![Example Visualization](https://github.com/repetitioestmaterstudiorum/pt_fc_layers_viz/blob/main/assets/example-without-paramts.png?raw=true)
