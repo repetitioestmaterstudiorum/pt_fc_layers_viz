@@ -11,9 +11,12 @@ It shows
 
 ## Usage
 
+Install the package via pip: `pip install pt-fc-layers-viz`, then use it as follows in your code:
+
     ```python
-    from pt_fc_layers_viz import pt_fc_layers_viz
-    pt_fc_layers_viz(model, param_val=False|True)
+    from pt_fc_layers_viz import draw_pt_fc_layers
+
+    draw_pt_fc_layers(model) # Optionally without parameter values: draw_pt_fc_layers(model, param_val=False)
     ```
 
 The function will automatically display the visualization. If you would like to save it as svg file, you can call the `.view()` method on the return value of the function.
@@ -32,9 +35,8 @@ Neural net with layers:
 - (1): Sigmoid()
 - (2): Linear(in_features=2, out_features=1, bias=True)
 
-Without parameter values:
-
-![Example Visualization](https://github.com/repetitioestmaterstudiorum/pt_fc_layers_viz/blob/main/assets/visualization-xor-model.png?raw=true)
-
 With parameter values:
 ![Example Visualization](https://github.com/repetitioestmaterstudiorum/pt_fc_layers_viz/blob/main/assets/visualization-xor-model-param-val.png?raw=true)
+
+Without parameter values:
+![Example Visualization](https://github.com/repetitioestmaterstudiorum/pt_fc_layers_viz/blob/main/assets/visualization-xor-model.png?raw=true)
