@@ -24,7 +24,7 @@ The function will automatically display the visualization. If you would like to 
 - torch
 - IPython
 
-## Example Visualization
+## Example Visualizations
 
 Neural net with layers:
 
@@ -32,4 +32,9 @@ Neural net with layers:
 - (1): Sigmoid()
 - (2): Linear(in_features=2, out_features=1, bias=True)
 
+Without parameter values:
+
 ![Example Visualization](https://github.com/repetitioestmaterstudiorum/pt_fc_layers_viz/blob/main/assets/visualization-xor-model.png?raw=true)
+
+With parameter values:
+![Example Visualization](https://github.com/repetitioestmaterstudiorum/pt_fc_layers_viz/blob/main/assets/visualization-xor-model-param-val.png?raw=true)
