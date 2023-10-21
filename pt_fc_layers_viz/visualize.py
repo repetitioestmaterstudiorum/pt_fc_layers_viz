@@ -1,5 +1,8 @@
+from typing import Literal
 from graphviz import Digraph
-from IPython.display import display, SVG
+from IPython.display import display, SVG, Image
+
+PT_ACTIVATION_FN_NAMES = ["Threshold", "ReLU", "RReLU", "Hardtanh", "ReLU6", "Sigmoid", "Hardsigmoid", "Tanh", "SiLU", "Mish", "Hardswish", "ELU", "CELU", "SELU", "GLU", "GELU", "Hardshrink", "LeakyReLU", "LogSigmoid", "Softplus", "Softshrink", "MultiheadAttention", "PReLU", "Softsign", "Tanhshrink", "Softmin", "Softmax", "Softmax2d", "LogSoftmax"]
 
 def get_pt_fc_layers(pt_fc_model):
     params_per_layer = {}
@@ -15,7 +18,10 @@ def get_pt_fc_layers(pt_fc_model):
 
         if is_weight:
             params_per_layer[layer_id]['weights'] = param.data
-            params_per_layer[layer_id]['input_size'] = param.shape[1]
+            try:
+                params_per_layer[layer_id]['input_size'] = param.shape[1]
+            except IndexError:
+                params_per_layer[layer_id]['input_size'] = param.shape[0]
             params_per_layer[layer_id]['output_size'] = param.shape[0]   
         elif is_bias:
             params_per_layer[layer_id]['biases'] = param.data
@@ -24,21 +30,33 @@ def get_pt_fc_layers(pt_fc_model):
     named_modules = list(pt_fc_model.named_modules())
 
     # Add activation information
-    for i, (name, param) in enumerate(named_modules):
+    for i, (layer_id, param) in enumerate(named_modules):
+        # Remove layer if it's an activation
+        if param.__class__.__name__ in PT_ACTIVATION_FN_NAMES and layer_id in layer_ids:
+            del params_per_layer[layer_id]
+
         if i + 1 == len(named_modules):
-            break # End of list is the next module
+            break # End of list is the next module, so no more activations to add
         
-        if name in layer_ids:
+        if layer_id in layer_ids:
             # Adding next module after this module
-            layer_id = name.rsplit('.', 1)[1]
             _, param_next = named_modules[i + 1]
-            params_per_layer[name]['activation'] = param_next.__class__.__name__
+            if param_next.__class__.__name__ in PT_ACTIVATION_FN_NAMES:
+                params_per_layer[layer_id]['activation'] = param_next.__class__.__name__
+                try:
+                    params_per_layer[layer_id]['activation_param'] = param_next.weight.data
+                except AttributeError:
+                    params_per_layer[layer_id]['activation_param'] = None
     del named_modules
+    del layer_ids
 
     # Rectify layer names in params_per_layer from layers.0 to layer.1, etc.
-    for i, layer_id in enumerate(layer_ids):
-        params_per_layer[f'layer.{i}'] = params_per_layer.pop(layer_id)
-    del layer_ids
+    for i, layer_id in enumerate(params_per_layer.keys()):
+        try:
+            layer = params_per_layer.pop(layer_id)
+        except KeyError:
+            continue
+        params_per_layer[f'layer.{i}'] = layer
 
     layers = list(params_per_layer.items())
     return layers
@@ -52,39 +70,45 @@ def dot_case_to_pascal_case(node_id):
     return node_id
 
 
-def draw_pt_fc_layers(pt_fc_model, param_val=True):
+def draw_pt_fc_layers(
+    pt_fc_model, *, param_val=True, display_img=True, 
+    format: Literal['svg', 'png', 'jpeg', 'jpg'] = 'svg',
+    rankdir: Literal['LR', 'TB'] = 'LR'
+) -> Digraph:
     layers = get_pt_fc_layers(pt_fc_model)
-
-    dot = Digraph(format='svg', graph_attr={'rankdir': 'LR'})
+    
+    dot = Digraph(format='svg', graph_attr={'rankdir': rankdir})
 
     for i, (layer_id, layer_params) in enumerate(layers):
         input_size = layer_params['input_size']
         output_size = layer_params['output_size']
-        
+
         # If this is the first layer, add the input nodes, in reverse order
         if i == 0:
             for i_is in range(input_size):
-                input_node_id = f'input.{i_is}'
-                dot.node(input_node_id, f'Input {i_is}')
+                dot.node(f'input.{i_is}', f'Input {i_is}')
 
         # Add a node per layer and a connection per input for each new node
         for i_os in range(output_size):
             node_id = f'{layer_id}.node.{i_os}'
-            bias_str = f"Bias: {layer_params['biases'][i_os]:.4f}" if param_val else ''
-            dot.node(node_id, f"{dot_case_to_pascal_case(node_id)}\n{layer_params.get('activation', 'No')} activation\n{bias_str}")
-            
+            bias_str = f"Bias {i} {i_os}: {layer_params['biases'][i_os].item():.4f}" if param_val else f'Bias {i} {i_os}'
+            activation_param = layer_params.get('activation_param')
+            activation_str = f"{layer_params.get('activation', 'No')} activation: {activation_param.item():.4f}" if param_val and activation_param is not None else f"{layer_params.get('activation', 'No')} activation"
+            dot.node(node_id, f"{dot_case_to_pascal_case(node_id)}\n{bias_str}\n{activation_str}")
+
             # For each node in the previous layer, add a connection
-            if i > 0 and i < len(layers):
+            if i > 0:
                 for i_is in range(input_size):
-                    prev_layer_id = f'{layers[i - 1][0]}.node.{i_is}'
-                    weight_str = f"Weight {i} {i_os} {i_is}: {layer_params['weights'][i_os][i_is]:.4f}" if param_val else f"Weight {i} {i_os} {i_is}"
-                    dot.edge(prev_layer_id, node_id, label=weight_str)
-            
+                    prev_node_id = f'{layers[i - 1][0]}.node.{i_is}'
+                    weight_str = f"Weight {i} {i_os} {i_is}: {layer_params['weights'][i_os, i_is].item():.4f}" if param_val else f"Weight {i} {i_os} {i_is}"
+                    dot.edge(prev_node_id, node_id, label=weight_str)
+
             # If this is the last layer, add the output nodes
             if i == len(layers) - 1:
-                output_node_id = f'output.{i_os}'
-                dot.node(output_node_id, f'Output {i_os}')
-                dot.edge(node_id, output_node_id)
+                for i_os in range(output_size):
+                    output_node_id = f'output.{i_os}'
+                    dot.node(output_node_id, f'Output {i_os}')
+                    dot.edge(node_id, output_node_id)
 
         # If this is the first layer, add input edges
         if i == 0:
@@ -95,6 +119,14 @@ def draw_pt_fc_layers(pt_fc_model, param_val=True):
                     input_weight_str = f"Weight {i} {i_os} {i_is}: {layer_params['weights'][i_os][i_is]:.4f}" if param_val else f"Weight {i} {i_os} {i_is}"
                     dot.edge(input_node_id, node_id, label=input_weight_str)
 
-    svg = dot.pipe(format='svg')
-    display(SVG(svg))
+    svg = dot.pipe(format=format)
+
+    if display_img:
+        if format == 'svg':
+            display(SVG(svg))
+        elif format in ['jpg', 'jpeg', 'png']:
+            display(Image(svg))
+        else:
+            raise ValueError(f'Unknown format: {format}')
+        
     return dot
