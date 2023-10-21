@@ -7,7 +7,7 @@ PT_ACTIVATION_FN_NAMES = ["Threshold", "ReLU", "RReLU", "Hardtanh", "ReLU6", "Si
 def get_pt_fc_layers(pt_fc_model):
     params_per_layer = {}
 
-    # Add weights and biases
+    # Add weights and biases
     for name, param in pt_fc_model.named_parameters():
         is_weight = name.endswith('weight')
         is_bias = name.endswith('bias')
@@ -29,7 +29,7 @@ def get_pt_fc_layers(pt_fc_model):
     layer_ids = list(params_per_layer.keys())
     named_modules = list(pt_fc_model.named_modules())
 
-    # Add activation information
+    # Add activation information
     for i, (layer_id, param) in enumerate(named_modules):
         # Remove layer if it's an activation
         if param.__class__.__name__ in PT_ACTIVATION_FN_NAMES and layer_id in layer_ids:
@@ -47,18 +47,13 @@ def get_pt_fc_layers(pt_fc_model):
                     params_per_layer[layer_id]['activation_param'] = param_next.weight.data
                 except AttributeError:
                     params_per_layer[layer_id]['activation_param'] = None
-    del named_modules
-    del layer_ids
 
     # Rectify layer names in params_per_layer from layers.0 to layer.1, etc.
-    for i, layer_id in enumerate(params_per_layer.keys()):
-        try:
-            layer = params_per_layer.pop(layer_id)
-        except KeyError:
-            continue
-        params_per_layer[f'layer.{i}'] = layer
+    rectified_params_per_layer = {}
+    for i, layer_id in enumerate(params_per_layer):
+        rectified_params_per_layer[f'layer.{i}'] = params_per_layer[layer_id]
 
-    layers = list(params_per_layer.items())
+    layers = list(rectified_params_per_layer.items())
     return layers
 
 
